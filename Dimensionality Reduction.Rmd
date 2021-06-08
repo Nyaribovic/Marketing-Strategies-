@@ -1,0 +1,491 @@
+---
+title: 'Part 1: Dimensionality Reduction'
+author: "VICTOR"
+date: "6/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#    Dimensionality Reduction
+## a) Data Analytic Question
+
+The aim of  this project is to reduce the dataset to a low dimensional dataset via the t-SNE algorithm or PCA.
+
+## b) Success Metrics
+
+* Successful Loading the data.
+* Successful Handling missing data.
+* Successful Outliers detection.
+* Successful Outlier Visualization.
+* Successful Handling  outliers.
+* Successful Univariate analysis.
+* Successful Bivariate analysis.
+
+
+
+## c) Context
+
+undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest number of sales.
+
+## d) Data Understanding
+Variables
+
+* The dataset consists of 8 numerical and 8 categorical attributes.
+* Invoice.ID
+* Branch
+* Customer.type
+* Gender
+* Product.line
+* Unit.price
+* Quantity
+* Tax
+* Date
+* Time
+* Payment
+* cogs
+* gross.margin.percentage
+* gross.income
+* Rating
+* Total
+
+## e) Experimental Design
+
+* Formulation of the research question.
+* Data Sourcing
+* Check the Data
+* Perform Data Cleaning
+* Perform Exploratory Data Analysis  (Univariate, Bivariate & Multivariate)
+* Implement the Solution
+* Challenging the Solution
+* Follow up Questions
+
+```{r cleaning,include=FALSE}
+
+###############cleaning r ENVIROMENT#####################################################3
+
+ls()  # TO see the objects you have created.
+rm(list=ls()) #First delete all the objects using rm(list=ls())
+gc()    #Then clear any occupied memory by running garbage collector using gc().
+#############################################################################
+library(AggregateR)
+library(broom)
+library(data.table)
+library(date,anytime)
+library(deSolve)
+library(distcrete)
+library(dplyr)
+library(DT)
+library(earlyR)
+library(EpiEstim)
+library(epitrix)
+library(ff)
+library(ggforce)
+library(ggplot2)
+library(ggthemes)
+library(gridExtra)
+library(gt)
+library(Hmisc)
+library(hrbrthemes)
+library(incidence)
+library(knitr)
+library(lubridate)
+library(magrittr)
+library(projections)
+library(readr)
+library(rvest)
+library(scales)
+library(stringr)
+library(tibble)
+library(tidyverse)
+library(writexl)
+library(xtable)
+library(class)
+library(caTools)
+library(psych)
+library(ISOcodes)
+library(caret)
+library(countrycode)
+library(mlbench)
+library(e1071)
+library(ggcorrplot)
+options( java.parameters = "-Xmx4g")
+options(digits = 15)
+
+```
+
+
+## Data Importation
+```{r  data, include=TRUE}
+dataset1<- read.csv("http://bit.ly/CarreFourDataset",header =T)
+
+
+```
+
+
+## converting data.frame data into data.table
+
+```{r  converting, include=TRUE}
+
+dataset1<-as.data.table(dataset1)
+class(dataset1) #checking class
+
+```
+
+## Data Columns
+```{r  preview, include=TRUE}
+
+kable(colnames(dataset1))
+
+```
+
+## Check for missing values
+
+```{r  missing, include=TRUE}
+library(Amelia)
+missmap(dataset1,main="Missing Values in Data Set")
+#colSums(is.na(dataset1))
+
+```
+
+## any NAs in data set?
+
+```{r  NAs, include=TRUE}
+colSums(is.na(dataset1))
+
+```
+
+Now lets find the duplicated rows in the dataset df and assign to a variable duplicated_rows below.
+
+```{r  duplicate, include=TRUE}
+duplicated_rows <- dataset1[duplicated(dataset1),]
+#Lets print out the variable duplicated_rows and see these duplicated rows
+#kable(duplicated_rows)
+```
+
+
+Removing these duplicated rows in the data set or 
+showing these unique items and assigning to a variable unique_items below
+ 
+```{r  unique_items, include=TRUE}
+
+unique_items <- dataset1[!duplicated(dataset1), ]
+
+```
+# Drop unnecessary column
+ 
+```{r drop, include=TRUE}
+
+dataset1 <- subset( dataset1, select = -Invoice.ID )
+```
+
+## Outlier Treatment
+
+```{r  Outlier, include=TRUE}
+
+mod <- lm( gross.margin.percentage~gross.income, data=dataset1)
+cooksd <- cooks.distance(mod)
+
+#Influence measures
+#In general use, those observations that have a cook’s distance greater than 4 times 
+#the mean may be classified as Outlier
+
+
+plot(cooksd, pch="*", cex=2, main="Outliers by Cooks distance")  # plot cook's distance
+abline(h = 4*mean(cooksd, na.rm=T), col="red")  # add cutoff line
+text(x=1:length(cooksd)+1, y=cooksd, labels=ifelse(cooksd>4*mean(cooksd, na.rm=T),names(cooksd),""), col="red")  # add labels
+
+```
+
+## Tibbles
+
+
+A tibble is a special kind of data.frame used by dplyr and other packages of the tidyverse. Tidyverse is a set of packages for data science that work in harmony because they share common data representations and API design. When a data.frame is turned into a tibble its class will change.
+
+```{r  Tibbles, include=TRUE}
+
+class(dataset1)
+
+dataset1<- tbl_df(dataset1)
+
+class(dataset1)
+
+
+```
+
+
+## Data Overview
+
+```{r  Glimpse, include=TRUE,echo = FALSE}
+
+glimpse(dataset1)
+```
+
+## Number of columns
+```{r  columns, include=TRUE,echo = FALSE}
+length(dataset1)
+```
+
+## Dimesion
+```{r  Dimesion, include=TRUE,echo = FALSE}
+dim(dataset1)
+
+```
+
+## Columnames
+```{r  Columnames, include=TRUE,echo = FALSE}
+colnames(dataset1)
+
+```
+# Encoding Categorical Variables
+```{r  Encoding_m, include=TRUE,echo = FALSE}
+library(encode)
+
+dataset1$Branch<-as.factor(dataset1$Branch)
+dataset1$Branch<-unclass(dataset1$Branch)         # Convert categorical variables
+dataset1$Branch<- as.numeric(dataset1$Branch)
+
+
+dataset1$Customer.type<-as.factor(dataset1$Customer.type)
+dataset1$Customer.type<-unclass(dataset1$Customer.type) 
+dataset1$Customer.type<- as.numeric(dataset1$Customer.type)
+
+
+dataset1$Gender<-as.factor(dataset1$Gender)
+dataset1$Gender<-unclass(dataset1$Gender)
+dataset1$Gender<- as.numeric(dataset1$Gender)
+
+dataset1$Product.line<-as.factor(dataset1$Product.line)
+dataset1$Product.line<-unclass(dataset1$Product.line) 
+dataset1$Product.line<- as.numeric(dataset1$Product.line)
+
+
+dataset1$Payment<-as.factor(dataset1$Payment)
+dataset1$Payment<-unclass(dataset1$Payment)
+dataset1$Payment<- as.numeric(dataset1$Payment)
+
+dataset1$Date<-as.Date(dataset1$Date,format='%m/%d/%Y')
+dataset1$Date<-mday(dataset1$Date)
+dataset1$Date<- as.numeric(dataset1$Date)
+
+dataset1$Time<-as.POSIXct(dataset1$Time,format="%H:%M")
+dataset1$Time<-hour(dataset1$Time)
+dataset1$Time<- as.numeric(dataset1$Time)
+
+```
+
+## Change data types 
+
+```{r  scale, include=TRUE,echo = FALSE}
+#library(caret)
+#dataset1$Quantity<- as.numeric(dataset1$Quantity)
+#dataset1$Branch<- as.numeric(dataset1$Branch)
+#dataset1$Customer.type<- as.numeric(dataset1$Customer.type)
+#dataset1$Gender<- as.numeric(dataset1$Gender)
+#dataset1$Product.line<- as.numeric(dataset1$Product.line)
+#dataset1$Date<- as.numeric(dataset1$Date)
+#dataset1$Time<- as.numeric(dataset1$Time)
+#dataset1$Payment<- as.numeric(dataset1$Payment)
+```
+
+## Column data types
+
+```{r  data_types, include=TRUE,echo = FALSE}
+sapply(dataset1,class)
+```
+
+# UNIVARIATE ANALYSIS
+
+## Unit.price
+```{r rev price, include=TRUE,echo = FALSE}
+   hist(dataset1$Unit.price,border="blue",col="green")
+"mean"
+mean(dataset1$Unit.price,na.rm=TRUE)
+
+"median"
+
+median(dataset1$Unit.price,na.rm=TRUE)
+
+"mode"
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+getmode(dataset1$Unit.price)
+
+   
+```
+## Tax
+```{r Tax, include=TRUE,echo = FALSE}
+   hist(dataset1$Tax,border="blue",col="cyan") 
+"mean"
+mean(dataset1$Tax,na.rm=TRUE)
+
+"median"
+
+median(dataset1$Tax,na.rm=TRUE)
+
+"mode"
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+getmode(dataset1$Tax)
+
+```
+## Total
+```{r  g.Total, include=TRUE,echo = FALSE}
+   hist(dataset1$Total,border="blue",col="purple") 
+"mean"
+mean(dataset1$Total,na.rm=TRUE)
+
+"median"
+
+median(dataset1$Total ,na.rm=TRUE)
+
+"mode"
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+getmode(dataset1$Total)
+
+```
+
+
+##  gross.income
+```{r g.income, include=TRUE,echo = FALSE}
+   hist(dataset1$gross.income,border="blue",col="deeppink") 
+"mean"
+mean(dataset1$gross.income,na.rm=TRUE)
+
+"median"
+
+median(dataset1$gross.income,na.rm=TRUE)
+
+"mode"
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+getmode(dataset1$gross.income)
+
+```
+
+##  Time
+```{r Time, include=TRUE,echo = FALSE}
+   hist(dataset1$Time,border="blue",col="orange") 
+"mean"
+mean(dataset1$Time,na.rm=TRUE)
+
+"median"
+
+median(dataset1$Time,na.rm=TRUE)
+
+"mode"
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+getmode(dataset1$Time)
+
+```
+
+##  Date
+```{r Date, include=TRUE,echo = FALSE}
+   hist(dataset1$Date,border="blue",col="navyblue") 
+"median"
+
+median(dataset1$Date,na.rm=TRUE)
+
+"mode"
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+getmode(dataset1$Date)
+
+```
+
+# Correlation Matrix 
+
+```{r  Correlation , include=TRUE,echo = FALSE}
+#library(ggcorrplot)
+#library(ggplot2)
+
+#corrdata<-dataset1[,c("Unit.price","Quantity","Tax","gross.margin.percentage","gross.income","Rating","Total")]  
+#corrdata<-na.omit(corrdata)
+
+#ggcorrplot(corrdata, hc.order = TRUE,type = "lower", p.mat = p.mat)
+```
+## Scaling
+At this point we fit data to a a range of between 0 and 1.
+
+```{r  scaling, include=TRUE,echo = FALSE}
+library(caret)
+# vector of columns you DON'T want
+#df1<- dataset1[,setdiff(names(dataset1), c("Total")), with = FALSE]# subset
+#df1<-scale(df1)
+#summary(df1)
+```
+
+
+
+```{r pca_Cluster, include=TRUE,echo = FALSE}
+#PRINCIPAL COMPONENT ANALYSIS
+#library(ggbiplot)
+#residuals<- prcomp(df1,scale=T,center=T)
+
+```
+
+
+
+# T-DISTRIBUTED STOCHASTIC NEIGHBOR EMBEDDING(t-SNE)
+
+
+```{r t-SNE, include=TRUE,echo = FALSE}
+# Loading our tnse library
+# 
+library(Rtsne)
+# Curating the database for analysis 
+# 
+Labels<-dataset1$Total
+dataset1$Total<-as.factor(dataset1$Total)
+
+# For plotting
+#
+colors = rainbow(length(unique(dataset1$Total)))
+names(colors) = unique(dataset1$Total)
+
+# Executing the algorithm on curated data
+# 
+tsne <- Rtsne(dataset1[,-1], dims = 2, perplexity=14, verbose=TRUE, max_iter = 200)
+
+# Getting the duration of execution
+# 
+exeTimeTsne <- system.time(Rtsne(dataset1[,-1], dims = 2, perplexity=14, verbose=TRUE, max_iter = 200))
+
+# Plotting our graph and closely examining the graph
+# 
+plot(tsne$Y, t='n', main="tsne")
+text(tsne$Y, labels=dataset1$Total, col=colors[dataset1$Total])
+```
+
+
+# Part 2: Feature Selection
+
+Importance of features can be estimated from data by building a Learning Vector Quantization (LVQ) model. The varImp is then used to estimate the variable importance, which is printed and plotted.
+
+```{r RF, include=TRUE,echo = FALSE}
+# load the library
+library(randomForest)
+library(caret)
+# load the dataset
+dataset2<-read.csv("http://bit.ly/CarreFourDataset",header =T)
+data<-dataset2[,-c(1,2,3,4,5,8,9,11)]
+#head(data)
+# train the model
+model <- randomForest(Total~., data=data)
+# estimate variable importance
+importance <- importance(model)
+# summarize importance
+importance
+# plot importance
+plot(importance)
+```
