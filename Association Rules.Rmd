@@ -1,0 +1,57 @@
+---
+title: 'Part 3: Association Rules'
+author: "VICTOR"
+date: "6/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Data Importation
+```{r  data, include=TRUE}
+library(arules)
+Transactions<- read.csv("http://bit.ly/SupermarketDatasetII",header =T)
+
+class(Transactions)
+
+# Previewing our first 5 transactions
+
+head(Transactions)
+
+# Generating a summary of the dataset
+# ---
+# This would give us some information such as the most purchased items, 
+# distribution of the item sets (no. of items purchased in each transaction), etc.
+# ---
+# 
+summary(Transactions)
+```
+# Building a model based on association rules 
+```{r rules, include=TRUE,echo = FALSE}
+
+# using the apriori function 
+# ---
+# We use Min Support as 0.001 and confidence as 0.8
+# ---
+
+rules <- apriori(Transactions, parameter = list(supp = 0.5, conf = 0.9, target = "rules"))
+
+summary(rules)
+```
+
+# Building a apriori model with Min Support as 0.002 and confidence as 0.8.
+
+```{r other apriori, include=TRUE,echo = FALSE}
+
+#rules2 <- apriori (Transactions,parameter = list(supp = 0.002, conf = 0.8)) 
+
+# Building apriori model with Min Support as 0.002 and confidence as 0.6.
+#rules3 <- apriori (Transactions, parameter = list(supp = 0.001, conf = 0.6)) 
+
+#rules2
+
+# rules3
+```
