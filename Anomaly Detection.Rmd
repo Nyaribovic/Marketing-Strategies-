@@ -1,0 +1,44 @@
+---
+title: "Anomaly Detection"
+author: "VICTOR"
+date: "6/5/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Importation
+```{r  data, include=TRUE}
+dataset3<- read.csv("http://bit.ly/CarreFourSalesDataset",header =T)
+
+
+```
+# Load tidyverse and anomalize 
+```{r anomalize , include=TRUE,echo = FALSE}
+library(tidyverse)
+library(anomalize)
+library(data.table)
+
+dataset3<- read.csv("http://bit.ly/CarreFourSalesDataset",header =T)
+dataset3$Date<- as.Date(dataset3$Date,format="%m/%d/%Y")
+#colnames(dataset3) <- c("month", "Sales")
+dataset3<-as.data.table(dataset3)
+#dataset3$Date<-mday(dataset3$Date)
+# Convert df to a tibble
+dataset3<-with(dataset3, aggregate(Sales, by = list(Date), FUN = sum))
+dataset3<- as_tibble(dataset3)
+
+#dataset3<-dataset3[order(dataset3$Date, decreasing =FALSE ),]
+colnames(dataset3) <- c("month", "Sales")
+head(dataset3)
+
+dataset3%>%
+  time_decompose(Sales, method = "stl") %>%
+  anomalize(remainder, method = "iqr") %>%
+  time_recompose() %>%
+  # Anomaly Visualization
+  plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.25) +
+  labs(title = "Tidyverse Anomalies", subtitle = "STL + IQR Methods") 
+```
