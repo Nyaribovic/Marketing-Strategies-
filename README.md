@@ -1,4 +1,4 @@
-# Marketing-Strategies-
+# Marketing-Strategies
 ## a) Data Analytic Question
 
 The aim of  this project is to reduce the dataset to a low dimensional dataset via the t-SNE algorithm or PCA.
